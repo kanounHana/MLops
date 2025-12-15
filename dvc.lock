@@ -171,8 +171,8 @@ stages:
       size: 220
     - path: src/batch_evaluation.py
       hash: md5
-      md5: dd71f43202735415a89691fc92b66a7e
-      size: 12785
+      md5: 8f5ba54109cb9e8dee2c42e7e766a13f
+      size: 12101
     outs:
     - path: reports/batch_analysis/
       hash: md5

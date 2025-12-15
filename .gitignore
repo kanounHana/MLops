@@ -1,7 +1,7 @@
 # ===============================
 # DATA & MODELS (DVC)
 # ===============================
-data/processed/
+data/
 models/
 *.pkl
 *.joblib

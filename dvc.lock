@@ -1,0 +1,135 @@
+schema: '2.0'
+stages:
+  preprocess:
+    cmd: python src/preprocessing.py
+    deps:
+    - path: data/raw/test/batch_test.csv
+      hash: md5
+      md5: 5a28d689430b20d42e42f0d31ac7cb96
+      size: 2892941
+    - path: data/raw/train/batch_1.csv
+      hash: md5
+      md5: 0ec5ad530d945e0054b1ac14d4e5faba
+      size: 3307219
+    - path: data/raw/train/batch_2.csv
+      hash: md5
+      md5: 6284cfdd71b2839c96ee712cc91ac229
+      size: 3320478
+    - path: data/raw/train/batch_3.csv
+      hash: md5
+      md5: 829d4b66309ccbde4cbda602351ae837
+      size: 3378343
+    - path: data/raw/train/batch_4.csv
+      hash: md5
+      md5: 30108e2b71f55cf1e7e0caefa3246b69
+      size: 1603519
+    - path: src/preprocessing.py
+      hash: md5
+      md5: 176dcc3878d02c4e58a7194f9d0e69a5
+      size: 18323
+    params:
+      params.yaml:
+        preprocess:
+          train_dir: data/raw/train
+          test_dir: data/raw/test
+          output_dir: data/processed
+          k_best_features: 20
+          variance_threshold: 0.01
+          test_size: 0.2
+          random_state: 42
+    outs:
+    - path: data/processed/
+      hash: md5
+      md5: 6743ae405ad437b0d135b803940e9ac9.dir
+      size: 17808697
+      nfiles: 5
+  train:
+    cmd: python src/modeling.py
+    deps:
+    - path: data/processed/X_test_processed.csv
+      hash: md5
+      md5: d952f3df15f8a9efdaaa8ba55021ecf4
+      size: 3479207
+    - path: data/processed/X_train_processed.csv
+      hash: md5
+      md5: a15128126eadc992bba1545d9d6e1afc
+      size: 13933856
+    - path: data/processed/y_train_processed.csv
+      hash: md5
+      md5: be93e67b1643932d4c850e9f56d777a8
+      size: 311726
+    - path: src/modeling.py
+      hash: md5
+      md5: 11a14763aafc206bb809b36160526c92
+      size: 16967
+    params:
+      params.yaml:
+        train:
+          data_path: data/processed
+          output_dir: models
+          validation_size: 0.2
+          random_state: 42
+          rf_n_estimators: 100
+          rf_max_depth: 15
+          rf_min_samples_split: 10
+          rf_min_samples_leaf: 4
+          xgb_n_estimators: 100
+          xgb_max_depth: 8
+          xgb_learning_rate: 0.1
+          xgb_subsample: 0.8
+          xgb_colsample_bytree: 0.8
+          lgb_n_estimators: 100
+          lgb_max_depth: 7
+          lgb_learning_rate: 0.1
+          lgb_num_leaves: 31
+          lgb_subsample: 0.8
+          mlp_hidden_layers:
+          - 64
+          - 32
+          mlp_activation: relu
+          mlp_alpha: 0.001
+          mlp_batch_size: 256
+          mlp_max_iter: 200
+    outs:
+    - path: models/
+      hash: md5
+      md5: e636231913fb259ec89182c0abbd4369.dir
+      size: 45129655
+      nfiles: 10
+  batch_evaluation:
+    cmd: python src/batch_evaluation.py
+    deps:
+    - path: data/processed/preprocessing_objects.pkl
+      hash: md5
+      md5: ee6f392b65ec5e3078c0e3097592bc37
+      size: 5966
+    - path: data/raw/test/batch_test.csv
+      hash: md5
+      md5: 5a28d689430b20d42e42f0d31ac7cb96
+      size: 2892941
+    - path: data/raw/train/batch_1.csv
+      hash: md5
+      md5: 0ec5ad530d945e0054b1ac14d4e5faba
+      size: 3307219
+    - path: data/raw/train/batch_2.csv
+      hash: md5
+      md5: 6284cfdd71b2839c96ee712cc91ac229
+      size: 3320478
+    - path: data/raw/train/batch_3.csv
+      hash: md5
+      md5: 829d4b66309ccbde4cbda602351ae837
+      size: 3378343
+    - path: data/raw/train/batch_4.csv
+      hash: md5
+      md5: 30108e2b71f55cf1e7e0caefa3246b69
+      size: 1603519
+    - path: src/batch_evaluation.py
+      hash: md5
+      md5: 3484287714b7198a5a127ce12435c6b9
+      size: 19233
+    outs:
+    - path: reports/batch_analysis/
+      hash: md5
+      md5: 6b5959539fcb926a6aa91da59febc250.dir
+      size: 350502
+      nfiles: 5

@@ -1,0 +1,17 @@
+{
+  "scenario_1_same_batch": {
+    "mean_f1": 0.9069659007344457,
+    "std_f1": 0.05807614912556617,
+    "mean_roc_auc": 0.9708752883152568
+  },
+  "scenario_2_cross_batch": {
+    "batch_1_on_batch_1": 0.9759668606934971,
+    "batch_1_on_others_mean": 0.8937735792409914,
+    "performance_drop": 0.0821932814525057
+  },
+  "scenario_3_cumulative": {
+    "final_f1": 0.9541893506838401,
+    "final_roc_auc": 0.9940374212704068,
+    "total_samples_used": 103904
+  }
+}

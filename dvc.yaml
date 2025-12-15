@@ -1,0 +1,29 @@
+stages:
+  preprocess:
+    cmd: python src/preprocessing.py
+    deps:
+      - src/preprocessing.py
+      - data/raw/train/batch_1.csv
+      - data/raw/train/batch_2.csv
+      - data/raw/train/batch_3.csv
+      - data/raw/train/batch_4.csv
+      - data/raw/test/batch_test.csv
+    params:
+      - preprocess
+    outs:
+      - data/processed/:
+          cache: true
+
+  train:
+    cmd: python src/modeling.py
+    deps:
+      - src/modeling.py
+      - data/processed/X_train_processed.csv
+      - data/processed/X_test_processed.csv
+      - data/processed/y_train_processed.csv
+    params:
+      - train
+    outs:
+      - models/:
+          cache: true
+  

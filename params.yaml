@@ -1,0 +1,45 @@
+preprocess:
+  train_dir: data/raw/train
+  test_dir: data/raw/test
+  output_dir: data/processed
+  k_best_features: 20
+  variance_threshold: 0.01
+  test_size: 0.2
+  random_state: 42
+
+train:
+  data_path: data/processed
+  output_dir: models
+  validation_size: 0.2
+  random_state: 42
+  
+  # Random Forest
+  rf_n_estimators: 100
+  rf_max_depth: 15
+  rf_min_samples_split: 10
+  rf_min_samples_leaf: 4
+  
+  # XGBoost
+  xgb_n_estimators: 100
+  xgb_max_depth: 8
+  xgb_learning_rate: 0.1
+  xgb_subsample: 0.8
+  xgb_colsample_bytree: 0.8
+  
+  # LightGBM
+  lgb_n_estimators: 100
+  lgb_max_depth: 7
+  lgb_learning_rate: 0.1
+  lgb_num_leaves: 31
+  lgb_subsample: 0.8
+  
+  # MLP
+  mlp_hidden_layers: [64, 32]
+  mlp_activation: relu
+  mlp_alpha: 0.001
+  mlp_batch_size: 256
+  mlp_max_iter: 200
+
+evaluate:
+  threshold: 0.5
+  metrics_dir: metrics

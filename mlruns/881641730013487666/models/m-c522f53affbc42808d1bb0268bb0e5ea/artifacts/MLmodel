@@ -1,0 +1,21 @@
+artifact_path: file:E:/downloads/airline/mlruns/881641730013487666/models/m-c522f53affbc42808d1bb0268bb0e5ea/artifacts
+flavors:
+  lightgbm:
+    code: null
+    data: model.pkl
+    lgb_version: 4.6.0
+    model_class: lightgbm.sklearn.LGBMClassifier
+  python_function:
+    data: model.pkl
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.lightgbm
+    python_version: 3.13.0
+mlflow_version: 3.7.0
+model_id: m-c522f53affbc42808d1bb0268bb0e5ea
+model_size_bytes: 354893
+model_uuid: m-c522f53affbc42808d1bb0268bb0e5ea
+prompts: null
+run_id: 830beb963c114829b1074685a613ac1a
+utc_time_created: '2025-12-15 22:25:08.894687'

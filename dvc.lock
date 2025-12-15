@@ -155,20 +155,20 @@ stages:
     deps:
     - path: models/batch_1/metadata.json
       hash: md5
-      md5: 1bce010e0da8c9898ee58fbeb8d7bd1f
-      size: 229
+      md5: 9ad36fe9ffcdef967bdf9844fdbb408e
+      size: 339
     - path: models/batch_2/metadata.json
       hash: md5
-      md5: 0a91a3996dead6457d4ec5a2cdfa1f03
-      size: 219
+      md5: 99df4e51787c0a572de295c70e974e58
+      size: 329
     - path: models/batch_3/metadata.json
       hash: md5
-      md5: 80f04231f1cc20c06523203fe1f313b5
-      size: 219
+      md5: ea42d37cb8d0ddee17bd52ed36553b9b
+      size: 329
     - path: models/batch_4/metadata.json
       hash: md5
-      md5: 04fcade717a69f19781184e2f1c8cb21
-      size: 220
+      md5: 0caaceae84182ed632201df2846faa44
+      size: 330
     - path: src/batch_evaluation.py
       hash: md5
       md5: 8f5ba54109cb9e8dee2c42e7e766a13f
@@ -176,6 +176,86 @@ stages:
     outs:
     - path: reports/batch_analysis/
       hash: md5
-      md5: 729e8de6ed19bae544f5805699841fc0.dir
-      size: 872448
+      md5: 48a33f1cb4e0b733f0ae31dfcad3bb2c.dir
+      size: 872785
       nfiles: 7
+  train_mlflow:
+    cmd: python src/modeling_mlflow.py
+    deps:
+    - path: data/processed/batch_1_X_processed.csv
+      hash: md5
+      md5: 9c08c73677587bbddd4e480bd1c424a0
+      size: 3916707
+    - path: data/processed/batch_1_y_processed.csv
+      hash: md5
+      md5: 2103c4fcb98057275e87313a18198b84
+      size: 90014
+    - path: data/processed/batch_2_X_processed.csv
+      hash: md5
+      md5: 5478b2d5b23e2555ded6a5867687cf2c
+      size: 3811269
+    - path: data/processed/batch_2_y_processed.csv
+      hash: md5
+      md5: c4a10c2bcb26b56d7055e7757947c89f
+      size: 90014
+    - path: data/processed/batch_3_X_processed.csv
+      hash: md5
+      md5: 8a8429d135a748061f04dea9b79f91de
+      size: 4098315
+    - path: data/processed/batch_3_y_processed.csv
+      hash: md5
+      md5: 25182b46b46af1b3aa80c7399128805a
+      size: 90014
+    - path: data/processed/batch_4_X_processed.csv
+      hash: md5
+      md5: 71ae4efff277bdf99eb593ad82d1f21a
+      size: 1567805
+    - path: data/processed/batch_4_y_processed.csv
+      hash: md5
+      md5: 27e1fb7d13e36c8a182e25847d1e8ba1
+      size: 41726
+    - path: src/modeling_mlflow.py
+      hash: md5
+      md5: 496f361be00477bb81948523ac17a4e1
+      size: 15022
+    params:
+      params.yaml:
+        train:
+          data_path: data/processed
+          output_dir: models
+          validation_size: 0.2
+          random_state: 42
+          rf_n_estimators: 100
+          rf_max_depth: 15
+          rf_min_samples_split: 10
+          rf_min_samples_leaf: 4
+          xgb_n_estimators: 100
+          xgb_max_depth: 8
+          xgb_learning_rate: 0.1
+          xgb_subsample: 0.8
+          xgb_colsample_bytree: 0.8
+          lgb_n_estimators: 100
+          lgb_max_depth: 7
+          lgb_learning_rate: 0.1
+          lgb_num_leaves: 31
+          lgb_subsample: 0.8
+          lgb_colsample_bytree: 0.8
+          mlp_hidden_layers:
+          - 64
+          - 32
+          mlp_activation: relu
+          mlp_alpha: 0.001
+          mlp_batch_size: 256
+          mlp_max_iter: 200
+          stacking_cv: 5
+    outs:
+    - path: mlruns/
+      hash: md5
+      md5: 0af471240be0ad62e79154c320db30fa.dir
+      size: 72829414
+      nfiles: 2469
+    - path: models/
+      hash: md5
+      md5: 68965836b4399074fd80a6887122ac6f.dir
+      size: 77508464
+      nfiles: 41

@@ -1,0 +1,22 @@
+artifact_path: file:E:/downloads/airline/mlruns/644506350914134828/models/m-5bfa6e3ea934455a8ff14f511475584e/artifacts
+flavors:
+  python_function:
+    data: model.ubj
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.xgboost
+    python_version: 3.13.0
+  xgboost:
+    code: null
+    data: model.ubj
+    model_class: xgboost.sklearn.XGBClassifier
+    model_format: ubj
+    xgb_version: 3.1.2
+mlflow_version: 3.7.0
+model_id: m-5bfa6e3ea934455a8ff14f511475584e
+model_size_bytes: 901231
+model_uuid: m-5bfa6e3ea934455a8ff14f511475584e
+prompts: null
+run_id: da24f707f7714bf3900bb376e5e8dd2b
+utc_time_created: '2025-12-15 22:26:51.105910'

@@ -13,10 +13,10 @@ stages:
       - data/processed/:
           cache: true
 
-  train:
-    cmd: python src/modeling.py
+  train_mlflow:
+    cmd: python src/modeling_mlflow.py
     deps:
-      - src/modeling.py
+      - src/modeling_mlflow.py
       - data/processed/batch_1_X_processed.csv
       - data/processed/batch_1_y_processed.csv
       - data/processed/batch_2_X_processed.csv
@@ -30,6 +30,8 @@ stages:
     outs:
       - models/:
           cache: true
+      - mlruns/:
+          cache: false
 
   evaluate:
     cmd: python src/batch_evaluation.py

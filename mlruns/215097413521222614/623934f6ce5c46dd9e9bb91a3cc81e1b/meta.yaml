@@ -1,0 +1,14 @@
+artifact_uri: file:E:/downloads/airline/mlruns/215097413521222614/623934f6ce5c46dd9e9bb91a3cc81e1b/artifacts
+end_time: 1765837697113
+entry_point_name: ''
+experiment_id: '215097413521222614'
+lifecycle_stage: active
+run_id: 623934f6ce5c46dd9e9bb91a3cc81e1b
+run_name: batch_4_Stacking Ensemble
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1765837688177
+status: 3
+tags: []
+user_id: Hana

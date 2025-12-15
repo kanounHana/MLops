@@ -1,0 +1,22 @@
+artifact_path: file:E:/downloads/airline/mlruns/644506350914134828/models/m-8d98fd72c52043fd81df464126d9127b/artifacts
+flavors:
+  python_function:
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.sklearn
+    model_path: model.pkl
+    predict_fn: predict
+    python_version: 3.13.0
+  sklearn:
+    code: null
+    pickled_model: model.pkl
+    serialization_format: cloudpickle
+    sklearn_version: 1.6.1
+mlflow_version: 3.7.0
+model_id: m-8d98fd72c52043fd81df464126d9127b
+model_size_bytes: 4129856
+model_uuid: m-8d98fd72c52043fd81df464126d9127b
+prompts: null
+run_id: fd81146db8a54596824d9cfc22d54cea
+utc_time_created: '2025-12-15 22:27:19.249427'

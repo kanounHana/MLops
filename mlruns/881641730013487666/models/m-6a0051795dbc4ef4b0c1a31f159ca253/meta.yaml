@@ -1,0 +1,10 @@
+artifact_location: file:E:/downloads/airline/mlruns/881641730013487666/models/m-6a0051795dbc4ef4b0c1a31f159ca253/artifacts
+creation_timestamp: 1765837482080
+experiment_id: '881641730013487666'
+last_updated_timestamp: 1765837488969
+model_id: m-6a0051795dbc4ef4b0c1a31f159ca253
+model_type: null
+name: model
+source_run_id: fc16e59c8c834485b601a4ee7c297344
+status: 2
+status_message: null

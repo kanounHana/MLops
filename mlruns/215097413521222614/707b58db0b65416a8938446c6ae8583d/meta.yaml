@@ -1,0 +1,14 @@
+artifact_uri: file:E:/downloads/airline/mlruns/215097413521222614/707b58db0b65416a8938446c6ae8583d/artifacts
+end_time: 1765837688166
+entry_point_name: ''
+experiment_id: '215097413521222614'
+lifecycle_stage: active
+run_id: 707b58db0b65416a8938446c6ae8583d
+run_name: batch_4_MLP
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1765837680812
+status: 3
+tags: []
+user_id: Hana

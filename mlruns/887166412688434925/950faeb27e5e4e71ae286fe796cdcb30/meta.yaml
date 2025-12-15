@@ -1,0 +1,14 @@
+artifact_uri: file:E:/downloads/airline/mlruns/887166412688434925/950faeb27e5e4e71ae286fe796cdcb30/artifacts
+end_time: 1765837542057
+entry_point_name: ''
+experiment_id: '887166412688434925'
+lifecycle_stage: active
+run_id: 950faeb27e5e4e71ae286fe796cdcb30
+run_name: batch_2_Logistic Regression
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1765837536052
+status: 3
+tags: []
+user_id: Hana

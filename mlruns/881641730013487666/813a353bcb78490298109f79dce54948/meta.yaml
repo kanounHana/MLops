@@ -1,0 +1,14 @@
+artifact_uri: file:E:/downloads/airline/mlruns/881641730013487666/813a353bcb78490298109f79dce54948/artifacts
+end_time: 1765837508297
+entry_point_name: ''
+experiment_id: '881641730013487666'
+lifecycle_stage: active
+run_id: 813a353bcb78490298109f79dce54948
+run_name: batch_1_XGBoost
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1765837501742
+status: 3
+tags: []
+user_id: Hana

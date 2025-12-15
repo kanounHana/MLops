@@ -1,0 +1,14 @@
+artifact_uri: file:E:/downloads/airline/mlruns/644506350914134828/786177171f7b479fad342bc9556d31cd/artifacts
+end_time: 1765837602922
+entry_point_name: ''
+experiment_id: '644506350914134828'
+lifecycle_stage: active
+run_id: 786177171f7b479fad342bc9556d31cd
+run_name: batch_3_Random Forest
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1765837596249
+status: 3
+tags: []
+user_id: Hana

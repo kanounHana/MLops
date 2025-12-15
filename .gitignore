@@ -50,3 +50,4 @@ Thumbs.db
 # DVC
 # ===============================
 .dvc/cache/
+/models

@@ -155,19 +155,19 @@ stages:
     deps:
     - path: models/batch_1/metadata.json
       hash: md5
-      md5: 9ad36fe9ffcdef967bdf9844fdbb408e
+      md5: 0eb63fe05187b8cac76ba477c336e75d
       size: 339
     - path: models/batch_2/metadata.json
       hash: md5
-      md5: 99df4e51787c0a572de295c70e974e58
+      md5: b2a2f2a57dc666e48df6bd8830e9dae9
       size: 329
     - path: models/batch_3/metadata.json
       hash: md5
-      md5: ea42d37cb8d0ddee17bd52ed36553b9b
+      md5: de735aa9cb5f268abc474a49ec670373
       size: 329
     - path: models/batch_4/metadata.json
       hash: md5
-      md5: 0caaceae84182ed632201df2846faa44
+      md5: e17014ef3479f11f390d16a589ce031b
       size: 330
     - path: src/batch_evaluation.py
       hash: md5
@@ -176,8 +176,8 @@ stages:
     outs:
     - path: reports/batch_analysis/
       hash: md5
-      md5: 48a33f1cb4e0b733f0ae31dfcad3bb2c.dir
-      size: 872785
+      md5: 21915be3dbf0584a6757856ec4f80a85.dir
+      size: 873437
       nfiles: 7
   train_mlflow:
     cmd: python src/modeling_mlflow.py
@@ -225,6 +225,8 @@ stages:
           output_dir: models
           validation_size: 0.2
           random_state: 42
+          register_model: true
+          registry_name: AirlineSatisfaction_Production
           rf_n_estimators: 100
           rf_max_depth: 15
           rf_min_samples_split: 10
@@ -251,11 +253,11 @@ stages:
     outs:
     - path: mlruns/
       hash: md5
-      md5: 0af471240be0ad62e79154c320db30fa.dir
-      size: 72829414
-      nfiles: 2469
+      md5: fa6aa18a6a4f2365946316968321b5e6.dir
+      size: 72831865
+      nfiles: 2478
     - path: models/
       hash: md5
-      md5: 68965836b4399074fd80a6887122ac6f.dir
-      size: 77508464
+      md5: a15a9d5f216e42cc18cf273f2eeadf66.dir
+      size: 77508638
       nfiles: 41

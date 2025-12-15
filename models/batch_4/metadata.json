@@ -1,0 +1,9 @@
+{
+  "batch_name": "batch_4",
+  "best_model": "LightGBM",
+  "best_f1": 0.8307866440294284,
+  "best_roc_auc": 0.9368556733752813,
+  "training_date": "2025-12-15 16:27:58",
+  "n_samples": 13904,
+  "n_features": 20
+}

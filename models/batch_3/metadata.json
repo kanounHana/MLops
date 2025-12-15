@@ -1,0 +1,9 @@
+{
+  "batch_name": "batch_3",
+  "best_model": "XGBoost",
+  "best_f1": 0.9029269319856812,
+  "best_roc_auc": 0.9606704775515065,
+  "training_date": "2025-12-15 16:27:48",
+  "n_samples": 30000,
+  "n_features": 20
+}

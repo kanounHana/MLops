@@ -4,7 +4,6 @@ preprocess:
   output_dir: data/processed
   k_best_features: 20
   variance_threshold: 0.01
-  test_size: 0.2
   random_state: 42
 
 train:
@@ -32,6 +31,7 @@ train:
   lgb_learning_rate: 0.1
   lgb_num_leaves: 31
   lgb_subsample: 0.8
+  lgb_colsample_bytree: 0.8
   
   # MLP
   mlp_hidden_layers: [64, 32]
@@ -39,7 +39,6 @@ train:
   mlp_alpha: 0.001
   mlp_batch_size: 256
   mlp_max_iter: 200
-
-evaluate:
-  threshold: 0.5
-  metrics_dir: metrics
+  
+  # Stacking
+  stacking_cv: 5

@@ -7,7 +7,6 @@ stages:
       - data/raw/train/batch_2.csv
       - data/raw/train/batch_3.csv
       - data/raw/train/batch_4.csv
-      - data/raw/test/batch_test.csv
     params:
       - preprocess
     outs:
@@ -18,12 +17,28 @@ stages:
     cmd: python src/modeling.py
     deps:
       - src/modeling.py
-      - data/processed/X_train_processed.csv
-      - data/processed/X_test_processed.csv
-      - data/processed/y_train_processed.csv
+      - data/processed/batch_1_X_processed.csv
+      - data/processed/batch_1_y_processed.csv
+      - data/processed/batch_2_X_processed.csv
+      - data/processed/batch_2_y_processed.csv
+      - data/processed/batch_3_X_processed.csv
+      - data/processed/batch_3_y_processed.csv
+      - data/processed/batch_4_X_processed.csv
+      - data/processed/batch_4_y_processed.csv
     params:
       - train
     outs:
       - models/:
           cache: true
-  
+
+  evaluate:
+    cmd: python src/batch_evaluation.py
+    deps:
+      - src/batch_evaluation.py
+      - models/batch_1/metadata.json
+      - models/batch_2/metadata.json
+      - models/batch_3/metadata.json
+      - models/batch_4/metadata.json
+    outs:
+      - reports/batch_analysis/:
+          cache: false

@@ -1,0 +1,23 @@
+================================================================================
+RAPPORT D'ANALYSE PAR BATCH
+================================================================================
+
+Nombre de batches analysés: 4
+F1-Score moyen: 0.9096 ± 0.0575
+Meilleur batch: batch_1 (F1=0.9526)
+
+MEILLEURS MODÈLES PAR BATCH:
+--------------------------------------------------------------------------------
+batch_1         → Stacking Ensemble    (F1=0.9526)
+batch_2         → LightGBM             (F1=0.9522)
+batch_3         → XGBoost              (F1=0.9029)
+batch_4         → LightGBM             (F1=0.8308)
+
+================================================================================
+RECOMMANDATIONS:
+================================================================================
+✅ Modèle le plus STABLE: N/A
+   (Écart-type: 0.0000)
+
+✅ Modèle avec la MEILLEURE moyenne: N/A
+   (F1 moyen: 0.0000)

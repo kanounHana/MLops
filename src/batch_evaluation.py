@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Évaluation par Batch - Analyse de performance temporelle
-Entraîne sur chaque batch individuellement et évalue les performances
+Évaluation et Comparaison entre Batches
+Analyse les résultats de modélisation de tous les batches
 """
 
 import pandas as pd
@@ -11,480 +11,312 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
-import joblib
 import json
 from pathlib import Path
-from sklearn.metrics import (accuracy_score, precision_score, recall_score, 
-                            f1_score, roc_auc_score, confusion_matrix)
-import xgboost as xgb
 import warnings
 warnings.filterwarnings('ignore')
 
 sns.set_style("whitegrid")
-plt.rcParams['figure.figsize'] = (14, 8)
+import sys
+import io
+
+# Ensure UTF-8 for stdout/stderr to avoid UnicodeEncodeError on Windows consoles
+try:
+    current_enc = getattr(sys.stdout, 'encoding', '') or ''
+    if current_enc.lower() != 'utf-8':
+        try:
+            sys.stdout.reconfigure(encoding='utf-8')
+            sys.stderr.reconfigure(encoding='utf-8')
+        except Exception:
+            sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+            sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+except Exception:
+    # If anything fails, continue without raising; prints may still fail but we avoid crashing
+    pass
 
 
-def preprocess_single_batch(batch_df, preprocessing_objects):
-    """Prétraite un batch unique avec les objets de preprocessing"""
+def load_batch_results(models_dir='models'):
+    """Charge les résultats de tous les batches"""
+    print("="*80)
+    print("EVALUATION PAR BATCH - ANALYSE COMPARATIVE")
+    print("="*80)
     
-    # Copier pour éviter modifications
-    df = batch_df.copy()
+    batch_dirs = sorted([d for d in Path(models_dir).iterdir() if d.is_dir() and d.name.startswith('batch_')])
     
-    # 1. Supprimer id si existe
-    df = df.drop(columns=['id'], errors='ignore')
+    if not batch_dirs:
+        raise FileNotFoundError(f"Aucun dossier batch trouve dans {models_dir}")
     
-    # 2. Gérer valeurs manquantes
-    for col in df.columns:
-        if df[col].isnull().any():
-            if df[col].dtype == 'object':
-                mode_val = df[col].mode()
-                if len(mode_val) > 0:
-                    df[col] = df[col].fillna(mode_val[0])
-            else:
-                df[col] = df[col].fillna(df[col].median())
+    print(f"\n[+] {len(batch_dirs)} batches detectes")
     
-    # 3. Encoder variables catégorielles (sauf target)
-    categorical_cols = df.select_dtypes(include=['object']).columns.tolist()
-    target_col = 'satisfaction'
+    all_results = []
+    all_metadata = []
     
-    # Sauvegarder la target avant de tout encoder
-    if target_col in df.columns:
-        target_encoder = preprocessing_objects['target_encoder']
-        y = target_encoder.transform(df[target_col])
-        df = df.drop(columns=[target_col])
-    else:
-        y = None
-    
-    if target_col in categorical_cols:
-        categorical_cols.remove(target_col)
-    
-    encoders = preprocessing_objects.get('encoders', {})
-    
-    for col in categorical_cols:
-        if col in encoders:
-            # Label encoding pour colonnes binaires
-            le = encoders[col]
-            unknown_mask = ~df[col].isin(le.classes_)
-            if unknown_mask.any():
-                df.loc[unknown_mask, col] = le.classes_[0]
-            df[col] = le.transform(df[col])
-        else:
-            # One-hot encoding pour Class (3 catégories)
-            if col == 'Class' and col in df.columns:
-                dummies = pd.get_dummies(df[col], prefix=col, drop_first=True)
-                # Assurer les bonnes colonnes
-                if 'Class_Eco' not in dummies.columns:
-                    dummies['Class_Eco'] = 0
-                if 'Class_Eco Plus' not in dummies.columns:
-                    dummies['Class_Eco Plus'] = 0
-                df = pd.concat([df.drop(columns=[col]), dummies[['Class_Eco', 'Class_Eco Plus']]], axis=1)
-    
-    # 4. Gérer outliers - Winsorization
-    numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
-    
-    # Appliquer winsorization pour les colonnes qui l'ont eu pendant l'entraînement
-    winsorize_cols = ['Age', 'Flight Distance', 'Gate location', 'Food and drink', 
-                     'Seat comfort', 'Inflight entertainment', 'On-board service',
-                     'Leg room service', 'Checkin service', 'Inflight service', 'Cleanliness']
-    
-    for col in winsorize_cols:
-        if col in df.columns:
-            Q1 = df[col].quantile(0.01)
-            Q3 = df[col].quantile(0.99)
-            df[col] = df[col].clip(Q1, Q3)
-    
-    # 5. Transformation log pour les délais
-    skewed_cols = ['Departure Delay in Minutes', 'Arrival Delay in Minutes']
-    for col in skewed_cols:
-        if col in df.columns:
-            df[f'{col}_log'] = np.log1p(df[col])
-            df = df.drop(columns=[col])
-    
-    # 6. Normaliser AVANT la sélection de features
-    # Le scaler a été fit sur toutes les colonnes, donc on doit d'abord normaliser
-    scaler = preprocessing_objects['scaler']
-    
-    # Obtenir les noms de colonnes sur lesquelles le scaler a été fit
-    # En vérifiant les feature_names_in_ du scaler
-    if hasattr(scaler, 'feature_names_in_'):
-        scaler_features = scaler.feature_names_in_
+    for batch_dir in batch_dirs:
+        batch_name = batch_dir.name
         
-        # Ajouter les colonnes manquantes avec 0
-        for feat in scaler_features:
-            if feat not in df.columns:
-                df[feat] = 0
+        # Charger comparaison
+        comparison_file = batch_dir / 'models_comparison.csv'
+        if comparison_file.exists():
+            df = pd.read_csv(comparison_file)
+            df['batch'] = batch_name
+            all_results.append(df)
         
-        # Réorganiser dans le bon ordre
-        df = df[scaler_features]
+        # Charger métadonnées
+        metadata_file = batch_dir / 'metadata.json'
+        if metadata_file.exists():
+            with open(metadata_file, 'r') as f:
+                metadata = json.load(f)
+                all_metadata.append(metadata)
+        
+        print(f"  [+] {batch_name}")
     
-    # Appliquer le scaler
-    X_scaled = scaler.transform(df)
-    X_scaled_df = pd.DataFrame(X_scaled, columns=df.columns)
+    df_all = pd.concat(all_results, ignore_index=True)
+    df_metadata = pd.DataFrame(all_metadata)
     
-    # 7. Appliquer les sélecteurs de features
-    variance_selector = preprocessing_objects['variance_selector']
-    kbest_selector = preprocessing_objects['kbest_selector']
-    
-    # VarianceThreshold
-    X_var = variance_selector.transform(X_scaled_df)
-    selected_after_var = X_scaled_df.columns[variance_selector.get_support()]
-    
-    # SelectKBest
-    X_kbest = kbest_selector.transform(X_var)
-    
-    # Obtenir les noms finaux des features
-    expected_features = preprocessing_objects['selected_features']
-    X = pd.DataFrame(X_kbest, columns=expected_features)
-    
-    return X, y
+    return df_all, df_metadata
 
 
-def train_on_batch(batch_name, X_train, y_train):
-    """Entraîne un modèle XGBoost sur un batch"""
+def create_comparison_visualizations(df_all, df_metadata, output_dir='reports/batch_analysis'):
+    """Crée les visualisations comparatives"""
+    print("\n" + "="*80)
+    print("[*] GENERATION DES VISUALISATIONS")
+    print("="*80)
     
-    scale_pos_weight = len(y_train[y_train==0]) / len(y_train[y_train==1])
+    os.makedirs(output_dir, exist_ok=True)
     
-    model = xgb.XGBClassifier(
-        n_estimators=100,
-        max_depth=8,
-        learning_rate=0.1,
-        subsample=0.8,
-        colsample_bytree=0.8,
-        random_state=42,
-        n_jobs=-1,
-        scale_pos_weight=scale_pos_weight,
-        eval_metric='logloss'
-    )
+    # 1. Comparaison F1-Score par batch et modèle
+    fig, axes = plt.subplots(2, 2, figsize=(18, 12))
     
-    model.fit(X_train, y_train)
+    # F1-Score
+    pivot_f1 = df_all.pivot_table(values='f1', index='batch', columns=df_all.index)
+    if 'Unnamed: 0' in df_all.columns:
+        df_all = df_all.rename(columns={'Unnamed: 0': 'model'})
     
-    return model
+    pivot_f1 = df_all.pivot_table(values='f1', index='batch', columns='model')
+    pivot_f1.plot(kind='bar', ax=axes[0, 0], width=0.8)
+    axes[0, 0].set_title('F1-Score par Batch et Modèle', fontweight='bold', fontsize=12)
+    axes[0, 0].set_ylabel('F1-Score')
+    axes[0, 0].legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=8)
+    axes[0, 0].grid(True, alpha=0.3)
+    axes[0, 0].set_xticklabels(axes[0, 0].get_xticklabels(), rotation=45)
+    
+    # ROC-AUC
+    pivot_auc = df_all.pivot_table(values='roc_auc', index='batch', columns='model')
+    pivot_auc.plot(kind='bar', ax=axes[0, 1], width=0.8)
+    axes[0, 1].set_title('ROC-AUC par Batch et Modèle', fontweight='bold', fontsize=12)
+    axes[0, 1].set_ylabel('ROC-AUC')
+    axes[0, 1].legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=8)
+    axes[0, 1].grid(True, alpha=0.3)
+    axes[0, 1].set_xticklabels(axes[0, 1].get_xticklabels(), rotation=45)
+    
+    # Meilleurs modèles par batch
+    best_models = df_metadata.sort_values('batch_name')
+    axes[1, 0].barh(best_models['batch_name'], best_models['best_f1'], color='steelblue')
+    axes[1, 0].set_xlabel('F1-Score')
+    axes[1, 0].set_title('Performance du Meilleur Modèle par Batch', fontweight='bold', fontsize=12)
+    axes[1, 0].grid(True, alpha=0.3, axis='x')
+    
+    for i, (batch, f1) in enumerate(zip(best_models['batch_name'], best_models['best_f1'])):
+        axes[1, 0].text(f1 + 0.005, i, f'{f1:.4f}', va='center', fontsize=9)
+    
+    # Temps d'entraînement
+    pivot_time = df_all.pivot_table(values='training_time', index='batch', columns='model')
+    pivot_time.plot(kind='bar', ax=axes[1, 1], width=0.8)
+    axes[1, 1].set_title('Temps d\'Entraînement par Modèle', fontweight='bold', fontsize=12)
+    axes[1, 1].set_ylabel('Temps (secondes)')
+    axes[1, 1].legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=8)
+    axes[1, 1].grid(True, alpha=0.3)
+    axes[1, 1].set_xticklabels(axes[1, 1].get_xticklabels(), rotation=45)
+    
+    plt.tight_layout()
+    plt.savefig(f'{output_dir}/batch_comparison.png', dpi=300, bbox_inches='tight')
+    print("[+] batch_comparison.png")
+    plt.close()
+    
+    # 2. Heatmap des performances
+    fig, axes = plt.subplots(1, 2, figsize=(18, 6))
+    
+    # Heatmap F1
+    sns.heatmap(pivot_f1.T, annot=True, fmt='.3f', cmap='RdYlGn', ax=axes[0],
+                cbar_kws={'label': 'F1-Score'}, vmin=0.85, vmax=1.0)
+    axes[0].set_title('Heatmap F1-Score', fontweight='bold', fontsize=12)
+    axes[0].set_xlabel('Batch')
+    axes[0].set_ylabel('Modèle')
+    
+    # Heatmap ROC-AUC
+    sns.heatmap(pivot_auc.T, annot=True, fmt='.3f', cmap='RdYlGn', ax=axes[1],
+                cbar_kws={'label': 'ROC-AUC'}, vmin=0.90, vmax=1.0)
+    axes[1].set_title('Heatmap ROC-AUC', fontweight='bold', fontsize=12)
+    axes[1].set_xlabel('Batch')
+    axes[1].set_ylabel('Modèle')
+    
+    plt.tight_layout()
+    plt.savefig(f'{output_dir}/heatmap_performance.png', dpi=300, bbox_inches='tight')
+    print("[+] heatmap_performance.png")
+    plt.close()
+    
+    # 3. Distribution des performances
+    fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+    
+    # Boxplot F1
+    df_all.boxplot(column='f1', by='model', ax=axes[0], rot=45)
+    axes[0].set_title('Distribution F1-Score par Modèle', fontweight='bold', fontsize=12)
+    axes[0].set_xlabel('Modèle')
+    axes[0].set_ylabel('F1-Score')
+    axes[0].get_figure().suptitle('')
+    
+    # Boxplot ROC-AUC
+    df_all.boxplot(column='roc_auc', by='model', ax=axes[1], rot=45)
+    axes[1].set_title('Distribution ROC-AUC par Modèle', fontweight='bold', fontsize=12)
+    axes[1].set_xlabel('Modèle')
+    axes[1].set_ylabel('ROC-AUC')
+    axes[1].get_figure().suptitle('')
+    
+    plt.tight_layout()
+    plt.savefig(f'{output_dir}/distribution_performance.png', dpi=300, bbox_inches='tight')
+    print("[+] distribution_performance.png")
+    plt.close()
 
 
-def evaluate_on_batch(model, X_test, y_test, batch_name):
-    """Évalue le modèle sur un batch"""
+def generate_summary_report(df_all, df_metadata, output_dir='reports/batch_analysis'):
+    """Génère un rapport de synthèse"""
+    print("\n" + "="*80)
+    print("[*] GENERATION DU RAPPORT DE SYNTHESE")
+    print("="*80)
     
-    y_pred = model.predict(X_test)
-    y_pred_proba = model.predict_proba(X_test)[:, 1]
-    
-    metrics = {
-        'batch': batch_name,
-        'accuracy': accuracy_score(y_test, y_pred),
-        'precision': precision_score(y_test, y_pred, zero_division=0),
-        'recall': recall_score(y_test, y_pred, zero_division=0),
-        'f1': f1_score(y_test, y_pred, zero_division=0),
-        'roc_auc': roc_auc_score(y_test, y_pred_proba),
-        'n_samples': len(y_test),
-        'n_positive': int((y_test == 1).sum()),
-        'n_negative': int((y_test == 0).sum())
+    summary = {
+        'global_stats': {
+            'n_batches': int(len(df_metadata)),
+            'avg_f1_across_batches': float(df_metadata['best_f1'].mean()),
+            'std_f1_across_batches': float(df_metadata['best_f1'].std()),
+            'best_overall_batch': str(df_metadata.loc[df_metadata['best_f1'].idxmax(), 'batch_name']),
+            'best_overall_f1': float(df_metadata['best_f1'].max())
+        },
+        'best_models_per_batch': [
+            {k: (str(v) if isinstance(v, (np.integer, np.floating)) or pd.isna(v) else v) 
+             for k, v in record.items()}
+            for record in df_metadata[['batch_name', 'best_model', 'best_f1', 'best_roc_auc']].to_dict('records')
+        ],
+        'model_consistency': {}
     }
     
-    return metrics
+    # Analyser la consistance des modèles
+    model_col = 'model' if 'model' in df_all.columns else None
+    
+    if model_col:
+        models_list = df_all[model_col].unique()
+    else:
+        # Si pas de colonne 'model', utiliser l'index
+        df_all = df_all.reset_index()
+        if 'index' in df_all.columns:
+            df_all = df_all.rename(columns={'index': 'model'})
+            model_col = 'model'
+            models_list = df_all[model_col].unique()
+        else:
+            models_list = df_all.index.unique()
+    
+    for model in models_list:
+        if model_col:
+            model_data = df_all[df_all[model_col] == model]
+        else:
+            model_data = df_all[df_all.index == model]
+        
+        summary['model_consistency'][str(model)] = {
+            'avg_f1': float(model_data['f1'].mean()),
+            'std_f1': float(model_data['f1'].std()),
+            'min_f1': float(model_data['f1'].min()),
+            'max_f1': float(model_data['f1'].max()),
+            'avg_roc_auc': float(model_data['roc_auc'].mean())
+        }
+    
+    # Identifier le modèle le plus stable
+    consistency_df = pd.DataFrame(summary['model_consistency']).T
+    
+    # Supprimer les NaN
+    consistency_df = consistency_df.dropna()
+    
+    if len(consistency_df) == 0:
+        print("[!] Aucune donnee de consistance disponible")
+        summary['recommendations'] = {
+            'most_stable_model': 'N/A',
+            'most_stable_std': 0.0,
+            'highest_avg_model': 'N/A',
+            'highest_avg_f1': 0.0
+        }
+    else:
+        most_stable_model = consistency_df['std_f1'].idxmin()
+        highest_avg_model = consistency_df['avg_f1'].idxmax()
+        
+        summary['recommendations'] = {
+            'most_stable_model': str(most_stable_model),
+            'most_stable_std': float(consistency_df.loc[most_stable_model, 'std_f1']),
+            'highest_avg_model': str(highest_avg_model),
+            'highest_avg_f1': float(consistency_df.loc[highest_avg_model, 'avg_f1'])
+        }
+    
+    # Sauvegarder
+    with open(f'{output_dir}/summary.json', 'w') as f:
+        json.dump(summary, f, indent=2)
+    
+    # Créer un rapport texte
+    with open(f'{output_dir}/report.txt', 'w', encoding='utf-8') as f:
+        f.write("="*80 + "\n")
+        f.write("RAPPORT D'ANALYSE PAR BATCH\n")
+        f.write("="*80 + "\n\n")
+        
+        f.write(f"Nombre de batches analysés: {summary['global_stats']['n_batches']}\n")
+        f.write(f"F1-Score moyen: {summary['global_stats']['avg_f1_across_batches']:.4f} ± {summary['global_stats']['std_f1_across_batches']:.4f}\n")
+        f.write(f"Meilleur batch: {summary['global_stats']['best_overall_batch']} (F1={summary['global_stats']['best_overall_f1']:.4f})\n\n")
+        
+        f.write("MEILLEURS MODÈLES PAR BATCH:\n")
+        f.write("-"*80 + "\n")
+        for batch in summary['best_models_per_batch']:
+            f.write(f"{batch['batch_name']:15} → {batch['best_model']:20} (F1={batch['best_f1']:.4f})\n")
+        
+        f.write("\n" + "="*80 + "\n")
+        f.write("RECOMMANDATIONS:\n")
+        f.write("="*80 + "\n")
+        f.write(f"✅ Modèle le plus STABLE: {summary['recommendations']['most_stable_model']}\n")
+        f.write(f"   (Écart-type: {summary['recommendations']['most_stable_std']:.4f})\n\n")
+        f.write(f"✅ Modèle avec la MEILLEURE moyenne: {summary['recommendations']['highest_avg_model']}\n")
+        f.write(f"   (F1 moyen: {summary['recommendations']['highest_avg_f1']:.4f})\n")
+    
+    print("✅ summary.json")
+    print("✅ report.txt")
+    
+    # Afficher le rapport
+    print("\n" + "="*80)
+    print("[*] RESUME DES RESULTATS")
+    print("="*80)
+    
+    with open(f'{output_dir}/report.txt', 'r', encoding='utf-8') as f:
+        print(f.read())
 
 
 def main():
-    print("="*80)
-    print("📊 ÉVALUATION PAR BATCH - ANALYSE TEMPORELLE")
-    print("="*80)
+    """Pipeline principal d'évaluation"""
+    # Charger résultats
+    df_all, df_metadata = load_batch_results()
     
-    # Charger les objets de preprocessing
-    preprocessing_objects = joblib.load('data/processed/preprocessing_objects.pkl')
+    # Sauvegarder données consolidées
+    output_dir = 'reports/batch_analysis'
+    os.makedirs(output_dir, exist_ok=True)
     
-    # Dossier des batches
-    train_dir = Path('data/raw/train')
-    batch_files = sorted(train_dir.glob('batch_*.csv'))
+    df_all.to_csv(f'{output_dir}/all_results.csv', index=False)
+    df_metadata.to_csv(f'{output_dir}/metadata_summary.csv', index=False)
     
-    print(f"\n📁 {len(batch_files)} batches détectés:")
-    for bf in batch_files:
-        print(f"   - {bf.name}")
+    print("\n[+] Donnees consolidees sauvegardees")
     
-    # ============================================================================
-    # SCÉNARIO 1: Entraîner sur chaque batch, tester sur ce même batch
-    # ============================================================================
+    # Visualisations
+    create_comparison_visualizations(df_all, df_metadata, output_dir)
     
-    print("\n" + "="*80)
-    print("📈 SCÉNARIO 1: Entraînement et test sur le MÊME batch")
-    print("="*80)
-    
-    results_same_batch = []
-    
-    for batch_file in batch_files:
-        batch_name = batch_file.stem  # batch_1, batch_2, etc.
-        print(f"\n🔸 Traitement de {batch_name}...")
-        
-        # Charger et prétraiter le batch
-        batch_df = pd.read_csv(batch_file)
-        print(f"   📊 Taille: {len(batch_df):,} lignes")
-        
-        X, y = preprocess_single_batch(batch_df, preprocessing_objects)
-        
-        # Split train/test 80/20
-        from sklearn.model_selection import train_test_split
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42, stratify=y
-        )
-        
-        print(f"   📊 Train: {len(X_train):,} | Test: {len(X_test):,}")
-        
-        # Entraîner
-        model = train_on_batch(batch_name, X_train, y_train)
-        
-        # Évaluer
-        metrics = evaluate_on_batch(model, X_test, y_test, batch_name)
-        results_same_batch.append(metrics)
-        
-        print(f"   ✅ F1-Score: {metrics['f1']:.4f} | ROC-AUC: {metrics['roc_auc']:.4f}")
-    
-    # Créer DataFrame des résultats
-    df_same_batch = pd.DataFrame(results_same_batch)
-    
-    print("\n📊 RÉSULTATS - MÊME BATCH:")
-    print("-"*80)
-    print(df_same_batch[['batch', 'accuracy', 'f1', 'roc_auc', 'n_samples']].to_string(index=False))
-    
-    # ============================================================================
-    # SCÉNARIO 2: Entraîner sur batch_1, tester sur tous les autres
-    # ============================================================================
+    # Rapport
+    generate_summary_report(df_all, df_metadata, output_dir)
     
     print("\n" + "="*80)
-    print("📈 SCÉNARIO 2: Entraînement sur BATCH_1, test sur TOUS les batches")
+    print("[+] EVALUATION TERMINEE!")
     print("="*80)
-    
-    # Entraîner sur batch_1
-    batch_1_df = pd.read_csv(batch_files[0])
-    X_batch1, y_batch1 = preprocess_single_batch(batch_1_df, preprocessing_objects)
-    
-    print(f"\n🎯 Entraînement sur {batch_files[0].stem}...")
-    print(f"   📊 Taille: {len(X_batch1):,} lignes")
-    
-    model_batch1 = train_on_batch('batch_1', X_batch1, y_batch1)
-    
-    results_cross_batch = []
-    
-    # Tester sur tous les batches
-    for batch_file in batch_files:
-        batch_name = batch_file.stem
-        print(f"\n🔸 Test sur {batch_name}...")
-        
-        batch_df = pd.read_csv(batch_file)
-        X, y = preprocess_single_batch(batch_df, preprocessing_objects)
-        
-        metrics = evaluate_on_batch(model_batch1, X, y, batch_name)
-        results_cross_batch.append(metrics)
-        
-        print(f"   ✅ F1-Score: {metrics['f1']:.4f} | ROC-AUC: {metrics['roc_auc']:.4f}")
-    
-    df_cross_batch = pd.DataFrame(results_cross_batch)
-    
-    print("\n📊 RÉSULTATS - MODÈLE BATCH_1 SUR TOUS LES BATCHES:")
-    print("-"*80)
-    print(df_cross_batch[['batch', 'accuracy', 'f1', 'roc_auc', 'n_samples']].to_string(index=False))
-    
-    # ============================================================================
-    # SCÉNARIO 3: Entraînement cumulatif (incremental learning)
-    # ============================================================================
-    
-    print("\n" + "="*80)
-    print("📈 SCÉNARIO 3: Entraînement CUMULATIF (batch_1, puis batch_1+2, etc.)")
-    print("="*80)
-    
-    results_cumulative = []
-    
-    # Charger le batch de test
-    test_df = pd.read_csv('data/raw/test/batch_test.csv')
-    X_test_final, y_test_final = preprocess_single_batch(test_df, preprocessing_objects)
-    
-    cumulative_X = []
-    cumulative_y = []
-    
-    for i, batch_file in enumerate(batch_files, 1):
-        batch_name = batch_file.stem
-        print(f"\n🔸 Ajout de {batch_name} à l'entraînement...")
-        
-        # Charger et prétraiter
-        batch_df = pd.read_csv(batch_file)
-        X, y = preprocess_single_batch(batch_df, preprocessing_objects)
-        
-        # Ajouter au cumulatif
-        cumulative_X.append(X)
-        cumulative_y.append(y)
-        
-        # Concaténer
-        X_train_cum = pd.concat(cumulative_X, ignore_index=True)
-        y_train_cum = np.concatenate(cumulative_y)
-        
-        print(f"   📊 Taille cumulée: {len(X_train_cum):,} lignes")
-        
-        # Entraîner
-        model_name = f"cumulative_batch_1_to_{i}"
-        model_cum = train_on_batch(model_name, X_train_cum, y_train_cum)
-        
-        # Évaluer sur le test set
-        metrics = evaluate_on_batch(model_cum, X_test_final, y_test_final, model_name)
-        metrics['batches_used'] = i
-        metrics['total_samples'] = len(X_train_cum)
-        results_cumulative.append(metrics)
-        
-        print(f"   ✅ F1-Score sur test: {metrics['f1']:.4f} | ROC-AUC: {metrics['roc_auc']:.4f}")
-    
-    df_cumulative = pd.DataFrame(results_cumulative)
-    
-    print("\n📊 RÉSULTATS - ENTRAÎNEMENT CUMULATIF:")
-    print("-"*80)
-    print(df_cumulative[['batch', 'batches_used', 'total_samples', 'f1', 'roc_auc']].to_string(index=False))
-    
-    # ============================================================================
-    # VISUALISATIONS
-    # ============================================================================
-    
-    print("\n" + "="*80)
-    print("📊 GÉNÉRATION DES VISUALISATIONS")
-    print("="*80)
-    
-    os.makedirs('reports/batch_analysis', exist_ok=True)
-    
-    # 1. Comparaison des 3 scénarios
-    fig, axes = plt.subplots(2, 2, figsize=(16, 12))
-    
-    # F1-Score par scénario
-    ax1 = axes[0, 0]
-    x_pos = np.arange(len(batch_files))
-    width = 0.25
-    
-    ax1.bar(x_pos - width, df_same_batch['f1'], width, label='Même batch', alpha=0.8)
-    ax1.bar(x_pos, df_cross_batch['f1'], width, label='Modèle batch_1', alpha=0.8)
-    ax1.bar(x_pos + width, df_cumulative['f1'][:len(batch_files)], width, label='Cumulatif', alpha=0.8)
-    
-    ax1.set_xlabel('Batch')
-    ax1.set_ylabel('F1-Score')
-    ax1.set_title('Comparaison F1-Score par Scénario', fontweight='bold')
-    ax1.set_xticks(x_pos)
-    ax1.set_xticklabels([f'B{i+1}' for i in range(len(batch_files))])
-    ax1.legend()
-    ax1.grid(True, alpha=0.3)
-    
-    # ROC-AUC par scénario
-    ax2 = axes[0, 1]
-    ax2.bar(x_pos - width, df_same_batch['roc_auc'], width, label='Même batch', alpha=0.8)
-    ax2.bar(x_pos, df_cross_batch['roc_auc'], width, label='Modèle batch_1', alpha=0.8)
-    ax2.bar(x_pos + width, df_cumulative['roc_auc'][:len(batch_files)], width, label='Cumulatif', alpha=0.8)
-    
-    ax2.set_xlabel('Batch')
-    ax2.set_ylabel('ROC-AUC')
-    ax2.set_title('Comparaison ROC-AUC par Scénario', fontweight='bold')
-    ax2.set_xticks(x_pos)
-    ax2.set_xticklabels([f'B{i+1}' for i in range(len(batch_files))])
-    ax2.legend()
-    ax2.grid(True, alpha=0.3)
-    
-    # Évolution cumulative
-    ax3 = axes[1, 0]
-    ax3.plot(df_cumulative['batches_used'], df_cumulative['f1'], 
-            marker='o', linewidth=2, markersize=8, label='F1-Score')
-    ax3.plot(df_cumulative['batches_used'], df_cumulative['accuracy'], 
-            marker='s', linewidth=2, markersize=8, label='Accuracy')
-    ax3.set_xlabel('Nombre de batches utilisés')
-    ax3.set_ylabel('Score')
-    ax3.set_title('Évolution des performances (Entraînement Cumulatif)', fontweight='bold')
-    ax3.legend()
-    ax3.grid(True, alpha=0.3)
-    ax3.set_xticks(df_cumulative['batches_used'])
-    
-    # Taille des échantillons
-    ax4 = axes[1, 1]
-    ax4.bar(range(1, len(batch_files)+1), 
-           [r['n_samples'] for r in results_same_batch],
-           alpha=0.7, color='steelblue')
-    ax4.set_xlabel('Batch')
-    ax4.set_ylabel('Nombre d\'échantillons')
-    ax4.set_title('Taille des batches', fontweight='bold')
-    ax4.set_xticks(range(1, len(batch_files)+1))
-    ax4.set_xticklabels([f'B{i}' for i in range(1, len(batch_files)+1)])
-    ax4.grid(True, alpha=0.3, axis='y')
-    
-    plt.tight_layout()
-    plt.savefig('reports/batch_analysis/batch_comparison.png', dpi=300, bbox_inches='tight')
-    print("✅ Graphique sauvegardé: reports/batch_analysis/batch_comparison.png")
-    plt.close()
-    
-    # 2. Heatmap de détérioration des performances
-    fig, ax = plt.subplots(figsize=(12, 8))
-    
-    metrics_matrix = []
-    for batch in batch_files:
-        batch_name = batch.stem
-        row = []
-        for metric_row in results_cross_batch:
-            if metric_row['batch'] == batch_name:
-                row.append(metric_row['f1'])
-        metrics_matrix.append(row)
-    
-    # Créer une matrice pour tous les modèles testés sur tous les batches
-    # Pour simplifier, on montre juste la détérioration depuis batch_1
-    deterioration = []
-    base_score = df_cross_batch.iloc[0]['f1']  # Score sur batch_1
-    for idx, row in df_cross_batch.iterrows():
-        deterioration.append(row['f1'] - base_score)
-    
-    # Sauvegarder les résultats
-    print("\n💾 Sauvegarde des résultats...")
-    
-    # Sauvegarder les DataFrames
-    df_same_batch.to_csv('reports/batch_analysis/results_same_batch.csv', index=False)
-    df_cross_batch.to_csv('reports/batch_analysis/results_cross_batch.csv', index=False)
-    df_cumulative.to_csv('reports/batch_analysis/results_cumulative.csv', index=False)
-    
-    print("✅ results_same_batch.csv")
-    print("✅ results_cross_batch.csv")
-    print("✅ results_cumulative.csv")
-    
-    # Sauvegarder un résumé JSON
-    summary = {
-        'scenario_1_same_batch': {
-            'mean_f1': float(df_same_batch['f1'].mean()),
-            'std_f1': float(df_same_batch['f1'].std()),
-            'mean_roc_auc': float(df_same_batch['roc_auc'].mean())
-        },
-        'scenario_2_cross_batch': {
-            'batch_1_on_batch_1': float(df_cross_batch.iloc[0]['f1']),
-            'batch_1_on_others_mean': float(df_cross_batch.iloc[1:]['f1'].mean()),
-            'performance_drop': float(df_cross_batch.iloc[0]['f1'] - df_cross_batch.iloc[1:]['f1'].mean())
-        },
-        'scenario_3_cumulative': {
-            'final_f1': float(df_cumulative.iloc[-1]['f1']),
-            'final_roc_auc': float(df_cumulative.iloc[-1]['roc_auc']),
-            'total_samples_used': int(df_cumulative.iloc[-1]['total_samples'])
-        }
-    }
-    
-    with open('reports/batch_analysis/summary.json', 'w') as f:
-        json.dump(summary, f, indent=2)
-    
-    print("✅ summary.json")
-    
-    # Afficher le résumé
-    print("\n" + "="*80)
-    print("📊 RÉSUMÉ DES ANALYSES")
-    print("="*80)
-    
-    print("\n🎯 SCÉNARIO 1 (Même batch):")
-    print(f"   - F1-Score moyen: {summary['scenario_1_same_batch']['mean_f1']:.4f} ± {summary['scenario_1_same_batch']['std_f1']:.4f}")
-    print(f"   - ROC-AUC moyen: {summary['scenario_1_same_batch']['mean_roc_auc']:.4f}")
-    
-    print("\n🎯 SCÉNARIO 2 (Modèle batch_1):")
-    print(f"   - Performance sur batch_1: {summary['scenario_2_cross_batch']['batch_1_on_batch_1']:.4f}")
-    print(f"   - Performance moyenne sur autres: {summary['scenario_2_cross_batch']['batch_1_on_others_mean']:.4f}")
-    print(f"   - Détérioration: {summary['scenario_2_cross_batch']['performance_drop']:.4f}")
-    
-    print("\n🎯 SCÉNARIO 3 (Cumulatif):")
-    print(f"   - F1-Score final: {summary['scenario_3_cumulative']['final_f1']:.4f}")
-    print(f"   - ROC-AUC final: {summary['scenario_3_cumulative']['final_roc_auc']:.4f}")
-    print(f"   - Total échantillons: {summary['scenario_3_cumulative']['total_samples_used']:,}")
-    
-    print("\n" + "="*80)
-    print("✅ ANALYSE PAR BATCH TERMINÉE!")
-    print("="*80)
-    print(f"\n📁 Résultats disponibles dans: reports/batch_analysis/")
+    print(f"\n[+] Resultats disponibles dans: {output_dir}/")
 
 
 if __name__ == "__main__":

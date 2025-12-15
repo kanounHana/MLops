@@ -1,12 +1,10 @@
 # ===============================
 # DATA & MODELS (DVC)
 # ===============================
-data/
+data/processed/
 models/
 *.pkl
 *.joblib
-PremiereEtape/models/
-PremiereEtape/processed/
 
 # ===============================
 # MLFLOW
@@ -26,12 +24,7 @@ Scripts/
 share/
 pyvenv.cfg
 
-# ===============================
-# GENERATED FILES
-# ===============================
-reports/
-graphiques/
-global_summary.csv
+
 
 # ===============================
 # PYTHON

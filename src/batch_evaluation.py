@@ -17,22 +17,6 @@ import warnings
 warnings.filterwarnings('ignore')
 
 sns.set_style("whitegrid")
-import sys
-import io
-
-# Ensure UTF-8 for stdout/stderr to avoid UnicodeEncodeError on Windows consoles
-try:
-    current_enc = getattr(sys.stdout, 'encoding', '') or ''
-    if current_enc.lower() != 'utf-8':
-        try:
-            sys.stdout.reconfigure(encoding='utf-8')
-            sys.stderr.reconfigure(encoding='utf-8')
-        except Exception:
-            sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
-            sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
-except Exception:
-    # If anything fails, continue without raising; prints may still fail but we avoid crashing
-    pass
 
 
 def load_batch_results(models_dir='models'):

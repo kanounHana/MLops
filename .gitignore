@@ -1,8 +1,14 @@
 # ===============================
 # DATA & MODELS (DVC)
 # ===============================
-data/
-models/
+# Ignorer le contenu des dossiers data/ mais PAS les fichiers .dvc
+/data/*
+!/data/*.dvc
+!/data/**/*.dvc
+
+/models/*
+!/models/*.dvc
+
 *.pkl
 *.joblib
 
@@ -24,12 +30,10 @@ Scripts/
 share/
 pyvenv.cfg
 
-
-
 # ===============================
 # PYTHON
 # ===============================
-_pycache_/
+__pycache__/
 *.pyc
 *.pyo
 .env

@@ -11,6 +11,9 @@ train:
   output_dir: models
   validation_size: 0.2
   random_state: 42
+    # 🆕 ACTIVATION DU MODEL REGISTRY
+  register_model: true  # ← CHANGEZ DE false À true
+  registry_name: 'AirlineSatisfaction_Production'
   
   # Random Forest
   rf_n_estimators: 100

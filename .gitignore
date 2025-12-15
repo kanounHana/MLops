@@ -1,1 +1,55 @@
-/models
+# ===============================
+# DATA & MODELS (DVC)
+# ===============================
+data/
+models/
+*.pkl
+*.joblib
+PremiereEtape/models/
+PremiereEtape/processed/
+
+# ===============================
+# MLFLOW
+# ===============================
+mlruns/
+mlflow.db
+
+# ===============================
+# VIRTUAL ENV
+# ===============================
+mlops/
+venv/
+.venv/
+Include/
+Lib/
+Scripts/
+share/
+pyvenv.cfg
+
+# ===============================
+# GENERATED FILES
+# ===============================
+reports/
+graphiques/
+global_summary.csv
+
+# ===============================
+# PYTHON
+# ===============================
+_pycache_/
+*.pyc
+*.pyo
+.env
+
+# ===============================
+# IDE / OS
+# ===============================
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# ===============================
+# DVC
+# ===============================
+.dvc/cache/

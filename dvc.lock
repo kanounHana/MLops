@@ -21,23 +21,25 @@ stages:
       size: 1603519
     - path: src/preprocessing.py
       hash: md5
-      md5: c52183b13a1c8246066a425aca73f12f
-      size: 5651
+      md5: fbb08a90b42c5c927118960c1d08b854
+      size: 13275
     params:
       params.yaml:
         preprocess:
           train_dir: data/raw/train
           test_dir: data/raw/test
           output_dir: data/processed
-          k_best_features: 20
-          variance_threshold: 0.01
+          k_best_features: 30
+          variance_threshold: 0.005
           random_state: 42
+          imbalance_threshold: 1.5
+          smote_strategy: auto
     outs:
     - path: data/processed/
       hash: md5
-      md5: 7f1a48a46f1eb23071dcabbe08ea407d.dir
-      size: 13727080
-      nfiles: 12
+      md5: 4ea20bc607859432e174be22faf704ad.dir
+      size: 17363332
+      nfiles: 14
   train:
     cmd: python src/modeling.py
     deps:
@@ -155,69 +157,77 @@ stages:
     deps:
     - path: models/batch_1/metadata.json
       hash: md5
-      md5: 0eb63fe05187b8cac76ba477c336e75d
-      size: 339
+      md5: 3fa48100dc33e50ac6d210a278c26930
+      size: 519
     - path: models/batch_2/metadata.json
       hash: md5
-      md5: b2a2f2a57dc666e48df6bd8830e9dae9
-      size: 329
+      md5: 8974f140bfb51baaa0b87c6bc93d1c8a
+      size: 509
     - path: models/batch_3/metadata.json
       hash: md5
-      md5: de735aa9cb5f268abc474a49ec670373
-      size: 329
+      md5: b3af590ec5a3693b90e567e279510ad6
+      size: 508
     - path: models/batch_4/metadata.json
       hash: md5
-      md5: e17014ef3479f11f390d16a589ce031b
-      size: 330
+      md5: 389fa2cf222c3bce012c638cad500035
+      size: 519
+    - path: models/global_summary.csv
+      hash: md5
+      md5: 93097d812b1cd9b389f47eaf12c9c534
+      size: 1075
     - path: src/batch_evaluation.py
       hash: md5
       md5: 8f5ba54109cb9e8dee2c42e7e766a13f
       size: 12101
     outs:
-    - path: reports/batch_analysis/
+    - path: reports/
       hash: md5
-      md5: 21915be3dbf0584a6757856ec4f80a85.dir
-      size: 873437
+      md5: 38f2d78cc10530449de78c9f522c11af.dir
+      size: 879835
       nfiles: 7
   train_mlflow:
     cmd: python src/modeling_mlflow.py
     deps:
     - path: data/processed/batch_1_X_processed.csv
       hash: md5
-      md5: 9c08c73677587bbddd4e480bd1c424a0
-      size: 3916707
+      md5: beb7b9b629f826cd8ec76e15e6f812d5
+      size: 4016985
     - path: data/processed/batch_1_y_processed.csv
       hash: md5
       md5: 2103c4fcb98057275e87313a18198b84
       size: 90014
     - path: data/processed/batch_2_X_processed.csv
       hash: md5
-      md5: 5478b2d5b23e2555ded6a5867687cf2c
-      size: 3811269
+      md5: a9e711208b774ce384d3596bfa381e3c
+      size: 4205994
     - path: data/processed/batch_2_y_processed.csv
       hash: md5
       md5: c4a10c2bcb26b56d7055e7757947c89f
       size: 90014
     - path: data/processed/batch_3_X_processed.csv
       hash: md5
-      md5: 8a8429d135a748061f04dea9b79f91de
-      size: 4098315
+      md5: 67caff2531ee43d4037dd3ab40d03de4
+      size: 5548688
     - path: data/processed/batch_3_y_processed.csv
       hash: md5
-      md5: 25182b46b46af1b3aa80c7399128805a
-      size: 90014
+      md5: 9216c8059a508a1a0e664efc29583f00
+      size: 100781
     - path: data/processed/batch_4_X_processed.csv
       hash: md5
-      md5: 71ae4efff277bdf99eb593ad82d1f21a
-      size: 1567805
+      md5: 37aa543cd98b584063e2f09be812d360
+      size: 3226703
     - path: data/processed/batch_4_y_processed.csv
       hash: md5
-      md5: 27e1fb7d13e36c8a182e25847d1e8ba1
-      size: 41726
+      md5: 626a4ce2e4c9da8eb90e0592755d3193
+      size: 53717
+    - path: data/processed/global_preprocessing.pkl
+      hash: md5
+      md5: 5c71523f808a4ca3e7f0210c43ff43b4
+      size: 5753
     - path: src/modeling_mlflow.py
       hash: md5
-      md5: 496f361be00477bb81948523ac17a4e1
-      size: 15022
+      md5: 4a143252421afd9e74007b34324edb15
+      size: 17176
     params:
       params.yaml:
         train:
@@ -227,37 +237,39 @@ stages:
           random_state: 42
           register_model: true
           registry_name: AirlineSatisfaction_Production
-          rf_n_estimators: 100
-          rf_max_depth: 15
-          rf_min_samples_split: 10
-          rf_min_samples_leaf: 4
-          xgb_n_estimators: 100
+          lr_C: 1.0
+          rf_n_estimators: 150
+          rf_max_depth: 20
+          rf_min_samples_split: 5
+          rf_min_samples_leaf: 2
+          xgb_n_estimators: 150
           xgb_max_depth: 8
-          xgb_learning_rate: 0.1
+          xgb_learning_rate: 0.05
           xgb_subsample: 0.8
           xgb_colsample_bytree: 0.8
-          lgb_n_estimators: 100
-          lgb_max_depth: 7
-          lgb_learning_rate: 0.1
-          lgb_num_leaves: 31
+          lgb_n_estimators: 150
+          lgb_max_depth: 8
+          lgb_learning_rate: 0.05
+          lgb_num_leaves: 50
           lgb_subsample: 0.8
           lgb_colsample_bytree: 0.8
           mlp_hidden_layers:
+          - 128
           - 64
           - 32
           mlp_activation: relu
-          mlp_alpha: 0.001
+          mlp_alpha: 0.0001
           mlp_batch_size: 256
-          mlp_max_iter: 200
+          mlp_max_iter: 300
           stacking_cv: 5
     outs:
     - path: mlruns/
       hash: md5
-      md5: fa6aa18a6a4f2365946316968321b5e6.dir
-      size: 72831865
-      nfiles: 2478
+      md5: 2b51da34c1184bab986ecd5bd4232472.dir
+      size: 205979983
+      nfiles: 2986
     - path: models/
       hash: md5
-      md5: a15a9d5f216e42cc18cf273f2eeadf66.dir
-      size: 77508638
+      md5: 1e1f078d43cbd4b07b4249ef77a288ef.dir
+      size: 233656765
       nfiles: 41

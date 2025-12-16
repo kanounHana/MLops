@@ -1,5 +1,5 @@
-batch_name,best_model,best_f1,best_roc_auc,best_run_id,mlflow_experiment,training_date,n_samples,n_features
-batch_1,Stacking Ensemble,0.9525514771709938,0.9920844671396505,2af4f11d2ef943eb9182eb505c7242fd,Airline_Satisfaction_batch_1,2025-12-16 00:25:29,30000,20
-batch_2,LightGBM,0.952219074598678,0.9925503799531119,0b87fe66622c41278d25b4d65b516067,Airline_Satisfaction_batch_2,2025-12-16 00:26:42,30000,20
-batch_3,XGBoost,0.9029269319856812,0.9606704775515065,35f16d3fedc74263834d1a01b45315ac,Airline_Satisfaction_batch_3,2025-12-16 00:27:51,30000,20
-batch_4,LightGBM,0.8307866440294284,0.9368556733752813,b4dafe4b9d4d4b8e9c14041fd571afe6,Airline_Satisfaction_batch_4,2025-12-16 00:28:51,13904,20
+batch_name,best_model,best_f1,best_f1_class_0,best_f1_class_1,best_roc_auc,best_run_id,mlflow_experiment,training_date,n_samples,n_features,registered_model_name,registered_model_version
+batch_1,Stacking Ensemble,0.9519213583556747,0.9580015612802498,0.9519213583556747,0.9924135144212135,21d96030d5164af697eaea0607990a6b,Airline_Satisfaction_batch_1,2025-12-16 17:17:07,30000,23,AirlineSatisfaction_Production,1
+batch_2,LightGBM,0.9522911559494626,0.962221890398686,0.9522911559494626,0.9926059288180652,c5bfb80afd934e2e9351fc03f99d3da6,Airline_Satisfaction_batch_2,2025-12-16 17:18:40,30000,23,AirlineSatisfaction_Production,2
+batch_3,LightGBM,0.926052332195677,0.9375257448853495,0.926052332195677,0.9695070385629542,c9521be674a9428e812f76ee19b08870,Airline_Satisfaction_batch_3,2025-12-16 17:20:26,33589,23,AirlineSatisfaction_Production,3
+batch_4,Stacking Ensemble,0.9163658243080626,0.9275664408546118,0.9163658243080626,0.9695075427413589,2daa38d784844dc28ddad4c1c80908c6,Airline_Satisfaction_batch_4,2025-12-16 17:21:44,17901,23,AirlineSatisfaction_Production,4

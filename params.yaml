@@ -2,46 +2,54 @@ preprocess:
   train_dir: data/raw/train
   test_dir: data/raw/test
   output_dir: data/processed
-  k_best_features: 20
-  variance_threshold: 0.01
+  k_best_features: 30
+  variance_threshold: 0.005
   random_state: 42
+  
+  # GESTION DU DÉSÉQUILIBRE (preprocessing)
+  imbalance_threshold: 1.5  # Si ratio >= 1.5 → SMOTE appliqué
+  smote_strategy: 'auto'    # 'auto' = 0.8, 'balanced' = 1.0, ou ratio custom
 
 train:
   data_path: data/processed
   output_dir: models
   validation_size: 0.2
   random_state: 42
-    # 🆕 ACTIVATION DU MODEL REGISTRY
-  register_model: true  # ← CHANGEZ DE false À true
+  
+  # Model Registry MLflow
+  register_model: true
   registry_name: 'AirlineSatisfaction_Production'
   
+  # Logistic Regression
+  lr_C: 1.0
+  
   # Random Forest
-  rf_n_estimators: 100
-  rf_max_depth: 15
-  rf_min_samples_split: 10
-  rf_min_samples_leaf: 4
+  rf_n_estimators: 150
+  rf_max_depth: 20
+  rf_min_samples_split: 5
+  rf_min_samples_leaf: 2
   
   # XGBoost
-  xgb_n_estimators: 100
+  xgb_n_estimators: 150
   xgb_max_depth: 8
-  xgb_learning_rate: 0.1
+  xgb_learning_rate: 0.05
   xgb_subsample: 0.8
   xgb_colsample_bytree: 0.8
   
   # LightGBM
-  lgb_n_estimators: 100
-  lgb_max_depth: 7
-  lgb_learning_rate: 0.1
-  lgb_num_leaves: 31
+  lgb_n_estimators: 150
+  lgb_max_depth: 8
+  lgb_learning_rate: 0.05
+  lgb_num_leaves: 50
   lgb_subsample: 0.8
   lgb_colsample_bytree: 0.8
   
   # MLP
-  mlp_hidden_layers: [64, 32]
+  mlp_hidden_layers: [128, 64, 32]
   mlp_activation: relu
-  mlp_alpha: 0.001
+  mlp_alpha: 0.0001
   mlp_batch_size: 256
-  mlp_max_iter: 200
+  mlp_max_iter: 300
   
   # Stacking
   stacking_cv: 5

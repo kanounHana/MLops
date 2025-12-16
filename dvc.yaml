@@ -1,4 +1,7 @@
 stages:
+  # ==========================================================================
+  # STAGE 1: PREPROCESSING GLOBAL
+  # ==========================================================================
   preprocess:
     cmd: python src/preprocessing.py
     deps:
@@ -13,6 +16,9 @@ stages:
       - data/processed/:
           cache: true
 
+  # ==========================================================================
+  # STAGE 2: TRAINING AVEC MLFLOW
+  # ==========================================================================
   train_mlflow:
     cmd: python src/modeling_mlflow.py
     deps:
@@ -25,6 +31,7 @@ stages:
       - data/processed/batch_3_y_processed.csv
       - data/processed/batch_4_X_processed.csv
       - data/processed/batch_4_y_processed.csv
+      - data/processed/global_preprocessing.pkl
     params:
       - train
     outs:
@@ -33,6 +40,9 @@ stages:
       - mlruns/:
           cache: false
 
+  # ==========================================================================
+  # STAGE 3: ÉVALUATION
+  # ==========================================================================
   evaluate:
     cmd: python src/batch_evaluation.py
     deps:
@@ -41,6 +51,7 @@ stages:
       - models/batch_2/metadata.json
       - models/batch_3/metadata.json
       - models/batch_4/metadata.json
+      - models/global_summary.csv
     outs:
-      - reports/batch_analysis/:
+      - reports/:
           cache: false
